@@ -1,0 +1,38 @@
+# GitHub Pages 배포 workflow (publish_github.py가 .github/workflows/deploy.yml 로 함께 올림)
+# 저장소 Settings → Pages → Source 를 "GitHub Actions" 로 두어야 동작한다.
+# 성공한 배포가 GitHub 쪽에서 "진행 중"으로 남아 다음 배포를 막는 경우가 있어, 배포 전에 이전 배포를 취소한다.
+name: deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  deployments: read
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - name: cancel stuck deployments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for sha in $(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=github-pages&per_page=10" --jq '.[].sha' | sort -u); do
+            [ "$sha" = "$GITHUB_SHA" ] && continue
+            gh api -X POST "repos/$GITHUB_REPOSITORY/pages/deployments/$sha/cancel" >/dev/null 2>&1 && echo "cancel $sha" || true
+          done
+      - id: deployment
+        uses: actions/deploy-pages@v4

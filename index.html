@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>폐사체 후보 모니터링 (샘플)</title>
+<style>
+  :root {
+    --bg: #0f1216; --panel: #181c22; --line: #2a3039; --text: #e6e9ee; --muted: #8b95a3;
+    --accent: #4c8dff; --accent-bg: rgba(76, 141, 255, .14); --danger: #ff4d4f; --danger-bg: rgba(255, 77, 79, .14);
+    --ok: #3ccf8e; --ok-bg: rgba(60, 207, 142, .12); --warn: #f5b041; --warn-bg: rgba(245, 176, 65, .14);
+    --head-h: 64px; --gap: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.4 "Pretendard", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { min-height: var(--head-h); display: flex; align-items: center; gap: 16px; padding: 8px 16px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--line); background: var(--panel); }
+  h1 { font-size: 18px; margin: 0; white-space: nowrap; }
+  .seg { display: flex; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 3px; }
+  .seg button { border: 0; background: transparent; color: var(--muted); padding: 7px 14px; border-radius: 6px;
+    font: inherit; cursor: pointer; white-space: nowrap; }
+  .seg button[aria-selected="true"] { background: var(--accent); color: #fff; font-weight: 600; }
+  #view button[aria-selected="true"] { background: #1f9d55; }                 /* 영상 종류 탭: 선택 시 초록색 */
+  .summary { margin-left: auto; display: flex; align-items: center; gap: 16px; white-space: nowrap; }
+  .total { font-weight: 700; font-size: 16px; padding: 6px 12px; border-radius: 8px; }
+  main { height: calc(100% - var(--head-h)); padding: var(--gap); display: grid; gap: var(--gap);
+    grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, minmax(0, 1fr)); }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; display: flex;
+    min-height: 0; overflow: hidden; }
+  .tile.alert { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger) inset; }
+  .info { width: 150px; flex: none; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .cam { font-weight: 700; font-size: 18px; }
+  .badge { align-self: flex-start; font-weight: 700; padding: 2px 10px; border-radius: 999px; font-size: 13px; }
+  .badge.det, .total.det { color: var(--danger); background: var(--danger-bg); }
+  .badge.none, .total.none { color: var(--ok); background: var(--ok-bg); }
+  .badge.wait { color: var(--muted); background: var(--bg); }
+  .win { color: var(--muted); font-size: 12px; }
+  .sample { color: var(--warn); background: var(--warn-bg); padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; }
+  .stale { display: inline-block; margin-top: 4px; color: var(--warn); background: var(--warn-bg); padding: 1px 8px;
+    border-radius: 6px; font-size: 12px; }
+  .cell { flex: 1; min-width: 0; min-height: 0; container-type: size; display: grid; place-items: center; padding: 6px; }
+  .media { position: relative; width: min(100cqw, calc(100cqh * 16 / 9)); aspect-ratio: 16 / 9;
+    background: #000; border-radius: 6px; overflow: hidden; cursor: zoom-in; }
+  .media svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .media .empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); text-align: center; }
+  svg rect { fill: none; stroke: var(--danger); stroke-width: 3px; vector-effect: non-scaling-stroke; }
+  svg text { fill: var(--danger); font-size: 64px; font-weight: 700; paint-order: stroke; stroke: #000; stroke-width: 10px; }
+  svg .corner rect { fill: rgba(0, 0, 0, .7); stroke: none; }
+  svg .corner text { fill: #fff; font-size: 80px; stroke: none; }
+  .feed { color: var(--danger); font-size: 13px; font-weight: 600; line-height: 1.6; }
+  dialog { border: 0; padding: 0; background: transparent; max-width: 96vw; max-height: 96vh; }
+  dialog::backdrop { background: rgba(0, 0, 0, .85); }
+  dialog .media { width: min(96vw, calc((96vh - 40px) * 16 / 9)); cursor: zoom-out; }
+  dialog .cap { color: #fff; padding: 8px 2px; font-size: 14px; }
+  @media (max-width: 760px) {
+    .summary { margin-left: 0; }
+    main { height: auto; grid-template-columns: 1fr; grid-template-rows: none; padding: 10px 16px; }
+    .tile { flex-direction: column; }
+    .info { width: auto; flex-direction: row; flex-wrap: wrap; align-items: center; }
+    .cell { container-type: normal; }
+    .media { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>폐사체 후보 모니터링</h1>
+  <span class="sample" id="updated">최근 업데이트 -</span>
+  <div class="seg" id="view" role="tablist" aria-label="이미지 종류">
+    <button role="tab" data-view="orig">원본 영상</button>
+    <button role="tab" data-view="bg">배경 영상</button>
+  </div>
+  <div class="summary">
+    <span class="total wait" id="total">-</span>
+  </div>
+</header>
+<main id="grid"></main>
+<dialog id="zoom"><div class="cap" id="zoom-cap"></div><div class="media" id="zoom-media"></div></dialog>
+
+<script>
+const LAYOUT = ["12003", "12006", "12002", "12005", "12001", "12004"];   // 3행 2열
+// 화면 모서리에 작게 표시할 번호: [번호, 위치] (tl 왼쪽 위, tr 오른쪽 위, bl 왼쪽 아래, br 오른쪽 아래)
+const CORNER = { "12001": [["6", "bl"], ["9", "tr"]],  "12002": [["15", "bl"], ["18", "tr"]],
+                 "12003": [["22", "tl"], ["25", "tr"]], "12004": [["9", "tl"], ["6", "br"]],
+                 "12005": [["18", "tl"], ["15", "br"]], "12006": [["25", "bl"], ["22", "tr"]] };
+const W = 2560, H = 1440, POLL_MS = 60000, STALE_MIN = 25, PAD = 28;   // PAD: 작은 개체도 보이도록 박스 여백(원본 px)
+
+const params = new URLSearchParams(location.search);
+let view = "orig";
+try { view = localStorage.getItem("view") || view; } catch (e) {}
+if (["orig", "bg"].includes(params.get("view"))) view = params.get("view");
+let data = null, lastKey = "", zones = {};
+
+// ---------------------------------------------------------------- 급이기 판정
+// bbox 중심이 들어 있는 영역의 label, 어느 영역에도 없으면 가장 가까운 영역의 label (json/{cam}.json)
+function inside([x, y], pts) {
+  let c = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+function edgeDist([x, y], pts) {
+  let m = Infinity;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [ax, ay] = pts[j], [bx, by] = pts[i], dx = bx - ax, dy = by - ay;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1)));
+    m = Math.min(m, Math.hypot(x - ax - t * dx, y - ay - t * dy));
+  }
+  return m;
+}
+function feeder(cam, b) {
+  const zs = zones[cam] || [], c = [(b.x1 + b.x2) / 2, (b.y1 + b.y2) / 2];
+  if (!zs.length) return null;
+  const hit = zs.find(z => inside(c, z.points));
+  return (hit || zs.reduce((a, z) => (edgeDist(c, z.points) < edgeDist(c, a.points) ? z : a))).label;
+}
+function feederCounts(cam, r) {
+  const n = {};
+  for (const b of r.boxes) { const f = feeder(cam, b); if (f) n[f] = (n[f] || 0) + 1; }
+  return Object.keys(n).sort().map(f => `급이기 ${f}: ${n[f]}`);
+}
+
+// ---------------------------------------------------------------- 렌더
+const grid = document.getElementById("grid");
+const tiles = {};
+for (const cam of LAYOUT) {
+  const t = document.createElement("section");
+  t.className = "tile";
+  t.innerHTML = `<div class="info"><span class="cam">${cam}</span><span class="badge wait">-</span><span class="feed"></span>
+    <span class="win"></span></div><div class="cell"><div class="media"><div class="empty">데이터 대기 중</div></div></div>`;
+  t.querySelector(".media").addEventListener("click", () => openZoom(cam));
+  grid.appendChild(t);
+  tiles[cam] = t;
+}
+
+const ts = s => new Date(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8), +s.slice(9, 11), +s.slice(11, 13), +s.slice(13, 15));
+const hm = s => `${s.slice(9, 11)}:${s.slice(11, 13)}`;
+const md = s => `${+s.slice(4, 6)}/${+s.slice(6, 8)}`;
+const ago = m => m >= 60 ? `${Math.floor(m / 60)}시간 ${m % 60}분` : `${m}분`;
+
+function corner([label, pos]) {
+  const w = 40 + 48 * label.length, h = 104;
+  const x0 = pos[1] === "r" ? W - 16 - w : 16, y0 = pos[0] === "b" ? H - 12 - h : 12;
+  return `<g class="corner"><rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="16"/>
+    <text x="${x0 + w / 2}" y="${y0 + 80}" text-anchor="middle">${label}</text></g>`;
+}
+
+function mediaHTML(cam, r) {
+  if (!r) return `<div class="empty">데이터 대기 중</div>`;
+  const boxes = r.boxes.map(b => {
+    const x = b.x1 - PAD, y = b.y1 - PAD, f = feeder(cam, b);
+    return `<rect x="${x}" y="${y}" width="${b.x2 - b.x1 + 2 * PAD}" height="${b.y2 - b.y1 + 2 * PAD}" rx="10"/>
+      <text x="${x}" y="${Math.max(60, y - 14)}">${f ? `급이기 ${f}` : ""}</text>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${cam} ${view === "orig" ? "원본 영상" : "배경 영상"}">
+    <image href="data/${r[view]}?v=${r.window_end}" width="${W}" height="${H}" preserveAspectRatio="none"/>${boxes}
+    ${(CORNER[cam] || []).map(corner).join("")}</svg>`;
+}
+
+function render(media = true) {
+  if (!data) return;
+  let total = 0, n = 0;
+  const now = new Date();
+  for (const cam of LAYOUT) {
+    const r = data.cameras[cam], t = tiles[cam];
+    const badge = t.querySelector(".badge"), win = t.querySelector(".win"), feed = t.querySelector(".feed");
+    if (media) t.querySelector(".media").innerHTML = mediaHTML(cam, r);
+    if (!r) { badge.className = "badge wait"; badge.textContent = "-"; win.textContent = feed.textContent = ""; t.classList.remove("alert"); continue; }
+    n++; total += r.count;
+    badge.className = "badge " + (r.count ? "det" : "none");
+    badge.textContent = r.count ? `폐사 후보 ${r.count}` : "탐지 없음";
+    t.classList.toggle("alert", r.count > 0);
+    feed.innerHTML = feederCounts(cam, r).join("<br>");
+    let note = "";
+    const age = Math.round((now - ts(r.window_end)) / 60000);
+    if (age > STALE_MIN) note = `<span class="stale">${ago(age)} 전 결과</span>`;
+    win.innerHTML = `${md(r.window_start)} ${hm(r.window_start)}<br>~ ${md(r.window_end)} ${hm(r.window_end)}${note ? "<br>" + note : ""}`;
+  }
+  const tot = document.getElementById("total");
+  tot.className = "total " + (n ? (total ? "det" : "none") : "wait");
+  tot.textContent = n ? `폐사 후보 합계 ${total}` : "-";
+  // 최근 업데이트: 탐지 결과가 마지막으로 갱신된 시각 (60초마다 경과 시간 갱신)
+  const up = document.getElementById("updated");
+  if (data.updated_at) {
+    const u = ts(data.updated_at), today = u.toDateString() === now.toDateString();
+    up.textContent = `최근 업데이트 ${today ? "" : md(data.updated_at) + " "}${hm(data.updated_at)} (${ago(Math.max(0, Math.round((now - u) / 60000)))} 전)`;
+  }
+}
+
+// ---------------------------------------------------------------- 상태 전환
+function setView(v) {
+  view = v;
+  try { localStorage.setItem("view", v); } catch (e) {}
+  document.querySelectorAll("#view button").forEach(b => b.setAttribute("aria-selected", b.dataset.view === v));
+  render();
+  const d = document.getElementById("zoom");
+  if (d.open) openZoom(d.dataset.cam);
+  history.replaceState(null, "", "?view=" + v);
+}
+
+document.querySelectorAll("#view button").forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
+
+// ---------------------------------------------------------------- 확대
+function openZoom(cam) {
+  const r = data && data.cameras[cam];
+  if (!r) return;
+  const d = document.getElementById("zoom"), m = document.getElementById("zoom-media");
+  d.dataset.cam = cam;
+  m.innerHTML = mediaHTML(cam, r);
+  document.getElementById("zoom-cap").textContent =
+    `${cam} · ${md(r.window_start)} ${hm(r.window_start)} ~ ${md(r.window_end)} ${hm(r.window_end)} · 폐사 후보 ${r.count}` +
+    (r.count ? ` (${feederCounts(cam, r).join(", ")})` : "");
+  if (!d.open) d.showModal();
+}
+document.getElementById("zoom").addEventListener("click", e => e.currentTarget.close());
+
+// ---------------------------------------------------------------- 실시간
+async function poll() {
+  try {
+    const res = await fetch("data/latest.json?t=" + Date.now());
+    if (!res.ok) return;
+    const d = await res.json(), key = JSON.stringify(d);
+    if (key !== lastKey) { data = d; lastKey = key; render(); }
+    else render(false);   // 이미지는 그대로, 경과 시간 표시만 갱신
+  } catch (e) {
+    document.getElementById("total").textContent = "불러오기 실패";
+  }
+}
+
+(async () => {
+  document.querySelectorAll("#view button").forEach(b => b.setAttribute("aria-selected", b.dataset.view === view));
+  try { zones = await (await fetch("data/zones.json?t=" + Date.now())).json(); } catch (e) {}
+  await poll();
+  setInterval(poll, POLL_MS);
+})();
+</script>
+</body>
+</html>
