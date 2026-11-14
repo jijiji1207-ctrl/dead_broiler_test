@@ -1,0 +1,68 @@
+{
+ "updated_at": "20261115_051326",
+ "cameras": {
+  "12001": {
+   "camera": "12001",
+   "window_start": "20261115_031109",
+   "window_end": "20261115_051248",
+   "count": 0,
+   "boxes": [],
+   "orig": "12001_orig.jpg",
+   "bg": "12001_bg.jpg"
+  },
+  "12002": {
+   "camera": "12002",
+   "window_start": "20261115_030906",
+   "window_end": "20261115_051046",
+   "count": 1,
+   "boxes": [
+    {
+     "x1": 1515.5,
+     "y1": 903.7,
+     "x2": 1590.3,
+     "y2": 988.0,
+     "score": 0.534,
+     "carried": false
+    }
+   ],
+   "orig": "12002_orig.jpg",
+   "bg": "12002_bg.jpg"
+  },
+  "12003": {
+   "camera": "12003",
+   "window_start": "20261115_031109",
+   "window_end": "20261115_051248",
+   "count": 0,
+   "boxes": [],
+   "orig": "12003_orig.jpg",
+   "bg": "12003_bg.jpg"
+  },
+  "12004": {
+   "camera": "12004",
+   "window_start": "20261115_030259",
+   "window_end": "20261115_050438",
+   "count": 0,
+   "boxes": [],
+   "orig": "12004_orig.jpg",
+   "bg": "12004_bg.jpg"
+  },
+  "12005": {
+   "camera": "12005",
+   "window_start": "20261115_030158",
+   "window_end": "20261115_050337",
+   "count": 0,
+   "boxes": [],
+   "orig": "12005_orig.jpg",
+   "bg": "12005_bg.jpg"
+  },
+  "12006": {
+   "camera": "12006",
+   "window_start": "20261115_030603",
+   "window_end": "20261115_050742",
+   "count": 0,
+   "boxes": [],
+   "orig": "12006_orig.jpg",
+   "bg": "12006_bg.jpg"
+  }
+ }
+}
