@@ -1,0 +1,59 @@
+{
+ "updated_at": "20261128_220028",
+ "cameras": {
+  "12001": {
+   "camera": "12001",
+   "window_start": "20261128_195556",
+   "window_end": "20261128_215754",
+   "count": 0,
+   "boxes": [],
+   "orig": "12001_orig.jpg",
+   "bg": "12001_bg.jpg"
+  },
+  "12002": {
+   "camera": "12002",
+   "window_start": "20261128_194848",
+   "window_end": "20261128_215137",
+   "count": 0,
+   "boxes": [],
+   "orig": "12002_orig.jpg",
+   "bg": "12002_bg.jpg"
+  },
+  "12003": {
+   "camera": "12003",
+   "window_start": "20261128_195556",
+   "window_end": "20261128_215755",
+   "count": 0,
+   "boxes": [],
+   "orig": "12003_orig.jpg",
+   "bg": "12003_bg.jpg"
+  },
+  "12004": {
+   "camera": "12004",
+   "window_start": "20261128_195759",
+   "window_end": "20261128_215957",
+   "count": 0,
+   "boxes": [],
+   "orig": "12004_orig.jpg",
+   "bg": "12004_bg.jpg"
+  },
+  "12005": {
+   "camera": "12005",
+   "window_start": "20261128_195658",
+   "window_end": "20261128_215856",
+   "count": 0,
+   "boxes": [],
+   "orig": "12005_orig.jpg",
+   "bg": "12005_bg.jpg"
+  },
+  "12006": {
+   "camera": "12006",
+   "window_start": "20261128_195051",
+   "window_end": "20261128_215239",
+   "count": 0,
+   "boxes": [],
+   "orig": "12006_orig.jpg",
+   "bg": "12006_bg.jpg"
+  }
+ }
+}
